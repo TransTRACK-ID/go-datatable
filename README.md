@@ -17,7 +17,7 @@ This Go package provides a flexible and efficient way to handle paginated data t
 To install the package, run this command via CLI inside your project:
 
 ```bash
-go get github.com/transtrack/go-datatable
+go get github.com/TransTRACK-ID/go-datatable
 ```
 
 ## Usage

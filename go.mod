@@ -1,4 +1,4 @@
-module github.com/transtrack/go-datatable
+module github.com/TransTRACK-ID/go-datatable
 
 go 1.21.5
 
