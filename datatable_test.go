@@ -3,6 +3,7 @@ package dt
 import (
 	"testing"
 
+	"github.com/stretchr/testify/suite"
 	"gorm.io/driver/sqlite"
 	"gorm.io/gorm"
 )
@@ -14,19 +15,22 @@ type User struct {
 	Email string `json:"email"`
 }
 
-// Test the DataTable function
-func TestDataTable(t *testing.T) {
-	// Setup test database
+// DataTableTestSuite defines the test suite for DataTable
+type DataTableTestSuite struct {
+	suite.Suite
+	DB *gorm.DB
+}
+
+// SetupSuite sets up the test database
+func (suite *DataTableTestSuite) SetupSuite() {
 	db, err := gorm.Open(sqlite.Open(":memory:"), &gorm.Config{})
 	if err != nil {
-		t.Fatalf("failed to connect database: %v", err)
+		suite.T().Fatalf("failed to connect database: %v", err)
 	}
-	// Migrate the schema
 	if err := db.AutoMigrate(&User{}); err != nil {
-		t.Fatalf("failed to migrate database: %v", err)
+		suite.T().Fatalf("failed to migrate database: %v", err)
 	}
 
-	// Seed some data
 	users := []User{
 		{ID: 1, Name: "John Doe", Email: "john@example.com"},
 		{ID: 2, Name: "Jane Doe", Email: "jane@example.com"},
@@ -34,7 +38,11 @@ func TestDataTable(t *testing.T) {
 	}
 	db.Create(&users)
 
-	// Test case 1: Simple pagination and sorting
+	suite.DB = db
+}
+
+// TestSimplePaginationAndSorting tests simple pagination and sorting
+func (suite *DataTableTestSuite) TestSimplePaginationAndSorting() {
 	req := &Request{
 		Page:     1,
 		PageSize: 2,
@@ -42,25 +50,80 @@ func TestDataTable(t *testing.T) {
 		Order:    "asc",
 	}
 
-	// Run DataTable function
-	resp, err := DataTable(req, db, User{})
-	if err != nil {
-		t.Errorf("DataTable() failed: %v", err)
+	resp, err := DataTable(req, suite.DB, User{})
+	suite.NoError(err)
+	suite.Equal(3, resp.TotalCount)
+	suite.Len(resp.Records, 2)
+	suite.Equal("John Doe", resp.Records[0].Name)
+	suite.Equal(2, resp.TotalPages)
+}
+
+// TestSearchFunctionality tests search functionality
+func (suite *DataTableTestSuite) TestSearchFunctionality() {
+	req := &Request{
+		Page:          1,
+		PageSize:      2,
+		Sort:          "id",
+		Order:         "asc",
+		SearchColumns: "name, email",
+		SearchValue:   "Doe",
 	}
 
-	// Check the result
-	if resp.TotalCount != 3 {
-		t.Errorf("Expected TotalCount = 3, got %d", resp.TotalCount)
-	}
-	if len(resp.Records) != 2 {
-		t.Errorf("Expected 2 records, got %d", len(resp.Records))
-	}
-	if resp.Records[0].Name != "John Doe" {
-		t.Errorf("Expected first record to be John Doe, got %s", resp.Records[0].Name)
-	}
-	if resp.TotalPages != 2 {
-		t.Errorf("Expected TotalPages = 2, got %d", resp.TotalPages)
+	resp, err := DataTable(req, suite.DB, User{})
+	suite.NoError(err)
+	suite.Equal(2, resp.TotalCount)
+	suite.Len(resp.Records, 2)
+}
+
+// TestInvalidPageNumber tests invalid page number
+func (suite *DataTableTestSuite) TestInvalidPageNumber() {
+	req := &Request{
+		Page:     2,
+		PageSize: 2,
+		Sort:     "id",
+		Order:    "asc",
 	}
 
-	// Add more test cases for search, filter, and invalid cases as needed
+	resp, err := DataTable(req, suite.DB, User{})
+	suite.NoError(err)
+	suite.Equal(3, resp.TotalCount)
+	suite.Len(resp.Records, 1)
+	suite.Equal("Alice Smith", resp.Records[0].Name)
+	suite.Equal(2, resp.TotalPages)
+}
+
+// TestFilteringFunctionality tests filtering functionality
+func (suite *DataTableTestSuite) TestFilteringFunctionality() {
+	req := &Request{
+		Page:          1,
+		PageSize:      2,
+		Sort:          "id",
+		Order:         "asc",
+		FilterColumns: "email",
+		FilterValue:   "alice@example.com",
+	}
+
+	resp, err := DataTable(req, suite.DB, User{})
+	suite.NoError(err)
+	suite.Equal(1, resp.TotalCount)
+	suite.Len(resp.Records, 1)
+	suite.Equal("Alice Smith", resp.Records[0].Name)
+}
+
+// TestInvalidSortField tests invalid sort field
+func (suite *DataTableTestSuite) TestInvalidSortField() {
+	req := &Request{
+		Page:     1,
+		PageSize: 2,
+		Sort:     "invalid_field",
+		Order:    "asc",
+	}
+
+	_, err := DataTable(req, suite.DB, User{})
+	suite.Error(err)
+}
+
+// TestDataTable runs the test suite
+func TestDataTable(t *testing.T) {
+	suite.Run(t, new(DataTableTestSuite))
 }
