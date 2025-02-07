@@ -43,11 +43,12 @@ func DataTable[T any](req *Request, db *gorm.DB, model T, preloadRelations ...st
 		if columns[0] != "" {
 			// check column validity
 			for _, col := range columns {
-				if !isValidColumn(col, model) {
+				if !isValidColumn(strings.TrimSpace(col), model) {
 					return PaginatedResponse[T]{}, errors.New("search column is not valid")
 				}
 			}
-			searchQuery := strings.Join(columns, fmt.Sprintf(" ILIKE '%%%s%%' OR", req.SearchValue))
+			searchQuery := strings.Join(columns, fmt.Sprintf(" LIKE '%%%s%%' OR", strings.ToLower(req.SearchValue)))
+			searchQuery = fmt.Sprintf("%s LIKE '%%%s%%'", searchQuery, strings.ToLower(req.SearchValue))
 			query = query.Where(searchQuery)
 		}
 	}
