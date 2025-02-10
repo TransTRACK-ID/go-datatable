@@ -58,7 +58,7 @@ func (suite *DataTableTestSuite) TestSimplePaginationAndSorting() {
 	suite.Equal(2, resp.TotalPages)
 }
 
-// TestSearchFunctionality tests search functionality
+// TestSearchFunctionality tests search functionality case-insensitive
 func (suite *DataTableTestSuite) TestSearchFunctionality() {
 	req := &Request{
 		Page:          1,
@@ -66,7 +66,7 @@ func (suite *DataTableTestSuite) TestSearchFunctionality() {
 		Sort:          "id",
 		Order:         "asc",
 		SearchColumns: "name, email",
-		SearchValue:   "Doe",
+		SearchValue:   "doe",
 	}
 
 	resp, err := DataTable(req, suite.DB, User{})

@@ -40,17 +40,21 @@ func DataTable[T any](req *Request, db *gorm.DB, model T, preloadRelations ...st
 	// Search functionality
 	if req.SearchValue != "" && req.SearchColumns != "" {
 		columns := strings.Split(req.SearchColumns, ",")
-		if columns[0] != "" {
-			// check column validity
-			for _, col := range columns {
-				if !isValidColumn(strings.TrimSpace(col), model) {
-					return PaginatedResponse[T]{}, errors.New("search column is not valid")
-				}
+		searchQuery := ""
+		for _, col := range columns {
+			col = strings.TrimSpace(col)
+			if !isValidColumn(col, model) {
+				return PaginatedResponse[T]{}, errors.New("search column is not valid")
 			}
-			searchQuery := strings.Join(columns, fmt.Sprintf(" LIKE '%%%s%%' OR ", strings.TrimSpace(strings.ToLower(req.SearchValue))))
-			searchQuery = fmt.Sprintf("%s LIKE '%%%s%%'", searchQuery, strings.ToLower(req.SearchValue))
-			query = query.Where(searchQuery)
+
+			if checkColumnType(col, model, "string") {
+				searchQuery += fmt.Sprintf("LOWER(%s) LIKE '%%%s%%' OR ", col, strings.ToLower(req.SearchValue))
+			} else {
+				searchQuery += fmt.Sprintf("%s LIKE '%%%s%%' OR ", col, req.SearchValue)
+			}
 		}
+		searchQuery = strings.TrimSuffix(searchQuery, " OR ")
+		query = query.Where(searchQuery)
 	}
 
 	// Filter functionality
