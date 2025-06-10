@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"strings"
+	"time"
 
 	"gorm.io/gorm"
 )
@@ -37,24 +38,46 @@ func DataTable[T any](req *Request, db *gorm.DB, model T, preloadRelations ...st
 		query = query.Preload(relation)
 	}
 
+	// Filter by date range
+	if req.DatetimeColumn != "" {
+		if req.DatetimeFrom == "" || req.DatetimeTo == "" {
+			return PaginatedResponse[T]{}, errors.New("datetime from and to must be provided when datetime column is specified")
+		}
+
+		if !isValidColumn(req.DatetimeColumn, model) {
+			return PaginatedResponse[T]{}, errors.New("datetime column is not valid")
+		}
+
+		var start, end time.Time
+		var err error
+
+		start, err = time.Parse(time.RFC3339, req.DatetimeFrom)
+		if err != nil {
+			return PaginatedResponse[T]{}, fmt.Errorf("invalid datetime from format: %v. use RFC3339 format (ie. 2006-01-02T15:04:05Z07:00)", err)
+		}
+
+		end, err = time.Parse(time.RFC3339, req.DatetimeTo)
+		if err != nil {
+			return PaginatedResponse[T]{}, fmt.Errorf("invalid end date: %v. use RFC3339 format (ie. 2006-01-02T15:04:05Z07:00)", err)
+		}
+
+		query = query.Where(fmt.Sprintf("%s BETWEEN ? AND ?", req.DatetimeColumn), start, end)
+	}
+
 	// Search functionality
 	if req.SearchValue != "" && req.SearchColumns != "" {
 		columns := strings.Split(req.SearchColumns, ",")
-		searchQuery := ""
-		for _, col := range columns {
-			col = strings.TrimSpace(col)
-			if !isValidColumn(col, model) {
-				return PaginatedResponse[T]{}, errors.New("search column is not valid")
+		if columns[0] != "" {
+			// check column validity
+			for _, col := range columns {
+				if !isValidColumn(strings.TrimSpace(col), model) {
+					return PaginatedResponse[T]{}, errors.New("search column is not valid")
+				}
 			}
-
-			if checkColumnType(col, model, "string") {
-				searchQuery += fmt.Sprintf("LOWER(%s) LIKE '%%%s%%' OR ", col, strings.ToLower(req.SearchValue))
-			} else {
-				searchQuery += fmt.Sprintf("%s LIKE '%%%s%%' OR ", col, req.SearchValue)
-			}
+			searchQuery := strings.Join(columns, fmt.Sprintf(" LIKE '%%%s%%' OR", strings.ToLower(req.SearchValue)))
+			searchQuery = fmt.Sprintf("%s LIKE '%%%s%%'", searchQuery, strings.ToLower(req.SearchValue))
+			query = query.Where(searchQuery)
 		}
-		searchQuery = strings.TrimSuffix(searchQuery, " OR ")
-		query = query.Where(searchQuery)
 	}
 
 	// Filter functionality
