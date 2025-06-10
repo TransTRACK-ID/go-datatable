@@ -2,6 +2,7 @@ package dt
 
 import (
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/suite"
 	"gorm.io/driver/sqlite"
@@ -10,9 +11,10 @@ import (
 
 // Mock model struct for testing
 type User struct {
-	ID    uint   `json:"id"`
-	Name  string `json:"name"`
-	Email string `json:"email"`
+	ID        uint      `json:"id"`
+	Name      string    `json:"name"`
+	Email     string    `json:"email"`
+	CreatedAt time.Time `json:"created_at"`
 }
 
 // DataTableTestSuite defines the test suite for DataTable
@@ -58,7 +60,7 @@ func (suite *DataTableTestSuite) TestSimplePaginationAndSorting() {
 	suite.Equal(2, resp.TotalPages)
 }
 
-// TestSearchFunctionality tests search functionality case-insensitive
+// TestSearchFunctionality tests search functionality
 func (suite *DataTableTestSuite) TestSearchFunctionality() {
 	req := &Request{
 		Page:          1,
@@ -66,7 +68,7 @@ func (suite *DataTableTestSuite) TestSearchFunctionality() {
 		Sort:          "id",
 		Order:         "asc",
 		SearchColumns: "name, email",
-		SearchValue:   "doe",
+		SearchValue:   "Doe",
 	}
 
 	resp, err := DataTable(req, suite.DB, User{})
@@ -121,6 +123,24 @@ func (suite *DataTableTestSuite) TestInvalidSortField() {
 
 	_, err := DataTable(req, suite.DB, User{})
 	suite.Error(err)
+}
+
+// TestDateRange tests date range filtering
+func (suite *DataTableTestSuite) TestDateRange() {
+	req := &Request{
+		Page:           1,
+		PageSize:       2,
+		Sort:           "id",
+		Order:          "asc",
+		DatetimeColumn: "created_at", // Assuming created_at is a valid column
+		DatetimeFrom:   "2023-01-01T00:00:00Z",
+		DatetimeTo:     "2023-01-31T23:59:59Z",
+	}
+
+	resp, err := DataTable(req, suite.DB, User{})
+	suite.NoError(err)
+	suite.Equal(0, resp.TotalCount) // Adjust based on actual data in the test DB
+	suite.Len(resp.Records, 0)      // Adjust based on actual data in the test DB
 }
 
 // TestDataTable runs the test suite

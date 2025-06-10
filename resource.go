@@ -1,14 +1,17 @@
 package dt
 
 type Request struct {
-	Page          int    `json:"page" form:"page" query:"page"`
-	PageSize      int    `json:"page_size" form:"page_size" query:"page_size"`
-	SearchColumns string `json:"search_columns" form:"search_columns" query:"search_columns"`
-	SearchValue   string `json:"search_value" form:"search_value" query:"search_value"`
-	FilterColumns string `json:"filter_columns" form:"filter_columns" query:"filter_columns"`
-	FilterValue   string `json:"filter_value" form:"filter_value" query:"filter_value"`
-	Sort          string `json:"sort" form:"sort" query:"sort"`
-	Order         string `json:"order" form:"order" query:"order"`
+	Page           int    `json:"page" form:"page" query:"page"`
+	PageSize       int    `json:"page_size" form:"page_size" query:"page_size"`
+	SearchColumns  string `json:"search_columns" form:"search_columns" query:"search_columns"`
+	SearchValue    string `json:"search_value" form:"search_value" query:"search_value"`
+	FilterColumns  string `json:"filter_columns" form:"filter_columns" query:"filter_columns"`
+	FilterValue    string `json:"filter_value" form:"filter_value" query:"filter_value"`
+	Sort           string `json:"sort" form:"sort" query:"sort"`
+	Order          string `json:"order" form:"order" query:"order"`
+	DatetimeColumn string `json:"date_column" form:"date_column" query:"date_column"`
+	DatetimeFrom   string `json:"datetime_from" form:"datetime_from" query:"datetime_from"`
+	DatetimeTo     string `json:"datetime_to" form:"datetime_to" query:"datetime_to"`
 }
 
 type PaginatedResponse[T any] struct {
