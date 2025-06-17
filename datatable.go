@@ -81,7 +81,7 @@ func DataTable[T any](req *Request, db *gorm.DB, model T, preloadRelations ...st
 					columns[i] = fmt.Sprintf("LOWER(%s)", col)
 				}
 			}
-			searchQuery := strings.Join(columns, fmt.Sprintf(" LIKE '%%%s%%' OR", strings.ToLower(req.SearchValue)))
+			searchQuery := strings.Join(columns, fmt.Sprintf(" LIKE '%%%s%%' OR ", strings.ToLower(req.SearchValue)))
 			searchQuery = fmt.Sprintf("%s LIKE '%%%s%%'", searchQuery, strings.ToLower(req.SearchValue))
 			query = query.Where(searchQuery)
 		}
